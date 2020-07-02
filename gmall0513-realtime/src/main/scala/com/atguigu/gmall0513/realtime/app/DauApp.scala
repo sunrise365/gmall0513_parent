@@ -21,6 +21,8 @@ import com.alibaba.fastjson.JSON
 import com.atguigu.gmall0513.realtime.bean.StartUpLog
 
 import org.apache.spark.rdd.RDD
+import org.apache.phoenix.spark._
+import org.apache.hadoop.conf.Configuration
 
 /**
  * 1  消费kafka
@@ -33,13 +35,15 @@ import org.apache.spark.rdd.RDD
 object DauApp {
     def main(args: Array[String]): Unit = {
 
-        // 导入spark 配置环境
+        // TODO 导入spark 配置环境，消费kafka的数据
+        // driver通过SparkContext对象来访问 Spark, SparkContext对象相当于一个到 Spark 集群的连接
         val sparkConf = new SparkConf().setAppName("dau_app").setMaster("local[*]")
         // 流式编程 StreamingContext ， 第二个参数是时间--多长时间一个批次，按批次取数据
         val ssc = new StreamingContext(sparkConf,Seconds(5))
         // 然后需要消费kafka，需要消费kafka的一个工具类，加一个包放在util中，叫做MyKafkaUtil
         val inputDstream: InputDStream[ConsumerRecord[String, String]] = MyKafkaUtil.getKafkaStream(GmallConstant.KAFKA_STARTUP, ssc)
 
+        // TODO 数据类型： {"area":"beijing","uid":"172","os":"andriod","ch":"website","appid":"gmall2019","mid":"mid_141","type":"startup","vs":"1.1.3","ts":1610149281827}
 //        inputDstream.foreachRDD(rdd =>
 //            println(rdd.map(_.value()).collect().mkString("\n"))
 //        )
@@ -60,8 +64,13 @@ object DauApp {
             startUpLog
         }
 
-        // TODO  3  根据清单进行过滤
-        // 过滤的最终版代码： 使用transform解决第二版的问题，并且也使用广播解决了redis连接消耗的问题
+
+        // TODO 添加一个缓存， 在节点中暂时存储数据，如果下一阶段没有处理完数据，后面来的数据可以放在这个节点的缓存中，等处理完了再从缓存中读取数据
+        startUplogDstream.cache()
+
+
+        // TODO  3  根据清单进行过滤---(注意：如果无法过滤数据，我这里是因为Windows的时间和Linux的时间不是同一天，导致获取的时间戳不一样，导致从redis查询数据的时候都是空的，所以没有过滤掉任何数据)
+        // TODO 过滤的最终版代码： 使用transform解决第二版的问题，并且也使用广播解决了redis连接消耗的问题
                 // 这个外面的代码是在driver中执行的
         val filteredDstream: DStream[StartUpLog] = startUplogDstream.transform { rdd =>
             println("过滤前：" + rdd.count())
@@ -120,7 +129,8 @@ object DauApp {
         //所以还需要同批次的数据去重！
         //批次内去重 ， 同一批次内，相同mid 只保留第一条 ==> 对相同的mid进行分组，组内进行比较 保留第一条
         val startupDstreamGroupByMid: DStream[(String, Iterable[StartUpLog])] = filteredDstream.map(startUplog => (startUplog.mid, startUplog)).groupByKey()
-        val startupDstreamGroupbyMid: DStream[StartUpLog] = startupDstreamGroupByMid.flatMap { case (mid, startupItr) =>
+        val startupRealFilteredDstream: DStream[StartUpLog] = startupDstreamGroupByMid.flatMap {
+            case (mid, startupItr) =>
             val top1List: List[StartUpLog] = startupItr.toList.sortWith { (startup1, startup2) =>
                 startup1.ts < startup2.ts
             }.take(1)
@@ -129,12 +139,11 @@ object DauApp {
 
 
         // 按理说，从思路上应该是第三步，先进行过滤在保存， 但是实际上一般都会先保存，打通流程并查看保存文件的格式
-        // 4  把用户访问清单保存到redis中
+        // TODO 4  把用户访问清单保存到redis中
         // 注意： 下面这种方式虽然可以，但是可以优化，因为建立连接非常消耗性能！！我们这里建立连接是放在foreach中的，也就是说遍历一次都会新建立一个连接，用完了再关闭
         // 如何做到， 一次连接多次使用呢？？？？
         import com.atguigu.gmall0513.realtime.util.RedisUtil
-        import redis.clients.jedis.Jedis
-        startupDstreamGroupbyMid.foreachRDD { rdd =>
+        startupRealFilteredDstream.foreachRDD { rdd =>
                 // 这个foreachPartition 是每个分区执行一次， startupItr是一个迭代器，代表这个分区中所有的数据，能够迭代这个分区中的所有数据
             rdd.foreachPartition { startupItr =>
                 //executor 执行一次
@@ -149,6 +158,17 @@ object DauApp {
                 jedis.close()
             }
         }
+
+
+        // TODO  在这里有可能出问题，因为当流里面的数据过来的时候，这个方法需要将字段一个个进行处理，可能会出现处理不及时的问题，就是一个数据没有保存完后面的数据救过来了，
+        //  导致分流现象，解决的办法就是在前面加上一个cache，用来作为缓存
+        startupRealFilteredDstream.foreachRDD{rdd =>
+            // 注意，第一个参数tableName： 大小写问题     第二个参数是把 列名放在Seq中，这里面的字段需要和流里面的每个对象startup的字段值一一对应（名字无所谓，顺序一定不能错）。
+            // 第三个配置是选择hadoop的configuration
+            // 第四个参数是scala特有的类型Option，（some或者是null类型），里面放zookeeper的地址, 最后一个参数可以不写
+            rdd.saveToPhoenix("GMALL0513_DAU",Seq("MID", "UID", "APPID", "AREA", "OS", "CH", "TYPE", "VS", "LOGDATE", "LOGHOUR", "TS"),new Configuration(),Some("hadoop102,hadoop103,hadoop104:2181"))
+        }
+
 
         //  开启sparkStreamingContext，并且终端不中断
         ssc.start()
