@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper SYSTEM "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<!--namespace就是这个配置文件中到底是实现了那个的方法？其实就是DauMapper这个接口，所以namespace中填写的就是这个接口的路径，这样这两个文件就产生关联了
+    是进一步精确定位到底是哪个方法？目前是实现selectDauTotal这个方法！看这个方法的功能是查询，所以使用select，如果是插入就用insert
+    -->
+<mapper namespace="com.atguigu.gmall0513.publisher.mapper.DauMapper">
+
+    <!--parameterType是确定类型
+        sql的参数通过  #{date}   传递过来，   #{}表达式可以将这个方法的参数提出过来-->
+    <select id="selectDauTotal" parameterType="java.lang.String" resultType="java.lang.Long">
+        select count(*) ct from gmall0513_dau where logDate=#{date}
+    </select>
+
+
+    <!--这里有一点需要注意的是，resultType，并不是java.util.List，因为这已经是查询出来多个值，必须说明如何将结果集封装到这个List<Map>中
+        所以这里需要写一个映射关系， resultMap，起个名字
+        问题是这个查询的结果如何封装到map中？ 需要写一个resultMap的映射（标签）-->
+    <select id="selectDauTotalHours" parameterType="java.lang.String" resultMap="dau_result_map">
+        select logHour,count(*) ct from gmall0513_dau where logDate=#{date}
+        group by logHour
+    </select>
+
+    <!--这个type是写的集合中每个元素的类型,
+        数据库中的字段名称和map中的key的名称一样的话，就可以直接在标签中设置 autoMapping="true"的自动映射就行了
+        如果需要数据库中字段的名称和封装成map中的key想不一样的话，需要手写result标签对应上-->
+    <resultMap id="dau_result_map" type="java.util.Map">
+        <!--column是数据库字段（注意Phoenix中是大写的），property是map中的key的值-->
+        <result column="LOGHOUR" property="LH"></result>
+    </resultMap>
+
+
+</mapper>
+
+
+<!--
+注意： 在写完了这个配置以后，还需要写一个注解和一个配置
+1. 使用mybatis定义了一个配置文件，还需要在入口处加上一个注解@MapperScan(basepackage = " ")。
+原因是： namespace="com.atguigu.gmall0513.publisher.mapper.DauMapper" 这个参数定义的路径 ， 必须在这个注解的扫描包的下面
+    解析，在resource的mapper下面，一般情况下，查询几个表就需要几个xml文件。问题来了，这些xml都要去扫描哪些类呢？都扫描浪费资源
+    所以，为了缩小范围，需要在这个注解中传入一个路劲。 @MapperScan(basepackage = "路径")。  这个路径只要是父路径，那个路径问题都不大，但是一般情况下都会放在mapper这个包里面，所以直接写mapper的路径就行了
+2. 还需要在springboot的properties配置文件中配置具体的 服务器地址、用户名和密码之类的东西
+-->

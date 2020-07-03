@@ -13,6 +13,8 @@
         <module>gmall0513_mock</module>
         <module>gmall0513_logger</module>
         <module>gmall0513-realtime</module>
+        <module>gmall0513-publisher</module>
+        <module>dw-chart</module>
     </modules>
 
     <!--    这个是拿springboot的parent过来替换的，这样就不需要使用IDEA给定的版本号，自己定义版本号，这个parent当做爷爷，原来springboot的parent就继承这个pom文件就行了-->
