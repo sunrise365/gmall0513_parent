@@ -140,7 +140,6 @@ object DauApp {
 
         // 按理说，从思路上应该是第三步，先进行过滤在保存， 但是实际上一般都会先保存，打通流程并查看保存文件的格式
         // TODO 4  把用户访问清单保存到redis中
-        // 注意： 下面这种方式虽然可以，但是可以优化，因为建立连接非常消耗性能！！我们这里建立连接是放在foreach中的，也就是说遍历一次都会新建立一个连接，用完了再关闭
         // 如何做到， 一次连接多次使用呢？？？？
         import com.atguigu.gmall0513.realtime.util.RedisUtil
         startupRealFilteredDstream.foreachRDD { rdd =>
@@ -181,7 +180,8 @@ object DauApp {
 
 
 /*
-startUplogDstream.foreachRDD { rdd =>
+// 注意： 下面这种方式虽然可以，但是可以优化，因为建立连接非常消耗性能！！我们这里建立连接是放在foreach中的，也就是说遍历一次都会新建立一个连接，用完了再关闭
+startupRealFilteredDstream.foreachRDD { rdd =>
     // 这一行是在driver中执行的，如果要把redis的连接提到这里会报错说没有序列化，这是因为如果程序在jvm就不需要序列化，但是只要数据从jvm中出去就一定要序列化
     // 一般从jvm出去 就两个地方， 一个是磁盘， 一个是走网线 都需要序列化
     rdd.foreach(startUpLog => {

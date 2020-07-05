@@ -3,6 +3,7 @@ package com.atguigu.gmall0513.publisher.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.atguigu.gmall0513.publisher.service.PublisherService;
+import com.atguigu.gmall0513.publisher.service.impl.PublisherServiceImpl;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +24,8 @@ public class PublisherController {
     @Autowired
     PublisherService publisherService;
 
-    // TODO     总数  访问路径	http://publisher:8070/realtime-total?date=2019-02-01    publisher是映射，需要在host中填写相应的映射关系
+
+    // TODO     总数  访问路径	http://publisher:8070/realtime-total?date=2020-07-04    publisher是映射，需要在host中填写相应的映射关系
     @GetMapping("realtime-total")
     public String getRealtimeTotal(@RequestParam("date") String dateString){
         Long dauTotal = publisherService.getDauTotal(dateString);
@@ -41,6 +43,7 @@ public class PublisherController {
 
         totalList.add(dauMap);
 
+
         HashMap midMap = new HashMap();
 
         midMap.put("id","new_mid");
@@ -48,6 +51,16 @@ public class PublisherController {
         midMap.put("value",323);
 
         totalList.add(midMap);
+
+        //订单交易总额
+        Double orderAmount = publisherService.getOrderAmount(dateString);
+        HashMap orderAmountMap = new HashMap();
+
+        orderAmountMap.put("id","order_amount");
+        orderAmountMap.put("name","新增交易额");
+        orderAmountMap.put("value",orderAmount);
+
+        totalList.add(orderAmountMap);
 
         return  JSON.toJSONString(totalList);
     }
@@ -71,9 +84,18 @@ public class PublisherController {
             hourMap.put("yesterday",dauTotalHoursYD);
             // 返回json字符串
             return JSON.toJSONString(hourMap);
-        }else {
-            return  null;
+        }else if ("order_amount".equals(id)){
+            Map<String, Double> orderAmountHoursTD = publisherService.getOrderAmountHour(dateString);
+            String yesterday = getYesterday(dateString);
+            Map<String, Double> orderAmountHoursYD = publisherService.getOrderAmountHour(yesterday);
+            // 将两天的数据组合成一个json串
+            HashMap<String, Map> hourMap = new HashMap<>();
+            hourMap.put("today",orderAmountHoursTD);
+            hourMap.put("yesterday",orderAmountHoursYD);
+            return JSON.toJSONString(hourMap);
         }
+
+        return null;
     }
 
 
