@@ -55,11 +55,28 @@
             <artifactId>spark-sql_2.11</artifactId>
         </dependency>
 
+        <!--下面的三个，第一个是最主要的jest客户端，剩下两个是两个小的是jest的工具包-->
+        <dependency>
+            <groupId>io.searchbox</groupId>
+            <artifactId>jest</artifactId>
+            <version>5.3.3</version>
+        </dependency>
 
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>4.5.2</version>
+        </dependency>
 
-
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>commons-compiler</artifactId>
+            <version>2.7.8</version>
+        </dependency>
 
     </dependencies>
+
+
     <build>
         <plugins>
             <!-- 该插件用于将Scala代码编译成class文件 -->

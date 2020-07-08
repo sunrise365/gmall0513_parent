@@ -67,7 +67,7 @@ public class PublisherController {
 
 
     // TODO 分时统计（注意： 这个需要两天的数据，写今天的日期，也会把昨天的数据也给你）
-    // 接口地址：http://publisher:8070/realtime-hour?id=dau&date=2019-02-01
+    // 接口地址：http://publisher:8070/realtime-hour?id=dau&date=2020-07-04
     // 需要返回的数据结构： {"yesterday":{"11":383,"12":123,"17":88,"19":200 },"today":{"12":38,"13":1233,"17":123,"19":688 }}
     @GetMapping("realtime-hour")
     public String getRealtimeHour(@RequestParam("id") String id,@RequestParam("date") String dateString){
@@ -85,6 +85,7 @@ public class PublisherController {
             // 返回json字符串
             return JSON.toJSONString(hourMap);
         }else if ("order_amount".equals(id)){
+            // TODO 访问路径： http://publisher:8070/realtime-hour?id=order_amount&date=2020-07-04
             Map<String, Double> orderAmountHoursTD = publisherService.getOrderAmountHour(dateString);
             String yesterday = getYesterday(dateString);
             Map<String, Double> orderAmountHoursYD = publisherService.getOrderAmountHour(yesterday);
