@@ -19,7 +19,7 @@ public class CanalHandler {
     // 这个数据是哪个表的数据
     String tableName;
 
-    // 数据的结果集
+    // 数据的结果集(行集)
     List<CanalEntry.RowData> rowDataList;
 
     // 构造函数
@@ -53,8 +53,11 @@ public class CanalHandler {
 
             sendRowDataList2Topic(GmallConstant.KAFKA_ORDER);
 
-        }else if (tableName.equals("user_info") && eventType==CanalEntry.EventType.INSERT){
+        }else if (tableName.equals("user_info") &&
+                (eventType== CanalEntry.EventType.INSERT||eventType== CanalEntry.EventType.UPDATE)){
             sendRowDataList2Topic(GmallConstant.KAFKA_USER);
+        }else if(tableName.equals("order_detail")&&eventType== CanalEntry.EventType.INSERT){
+            sendRowDataList2Topic(GmallConstant.KAFKA_ORDER_DETAIL);
         }
     }
 
@@ -73,6 +76,7 @@ public class CanalHandler {
             for (CanalEntry.Column column : afterColumnsList) {
                 String name = column.getName();
                 String value = column.getValue();
+                // 把column的数据取出来封装成一个json对象
                 jsonObject.put(name,value);
                 // 控制台打印，查询数据
                 // System.out.println(name + ": " + value);
@@ -80,6 +84,14 @@ public class CanalHandler {
             String rowJson = jsonObject.toJSONString();
             //System.out.println(rowJson);          查看封装成的json字符串
             // 自定义一个创建kafka的生产者的工具类，同时封装发送的方法
+
+            // 这个延时主要是为了测试在 实时预警 的功能中添加的
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             MyKafkaSender.send(topic,rowJson);
         }
     }

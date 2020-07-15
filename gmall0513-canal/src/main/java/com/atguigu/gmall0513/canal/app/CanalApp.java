@@ -26,7 +26,7 @@ public class CanalApp {
             // 也就是说如果写1，可不是一条数据，而是执行一条sql的一个单元的结果集，可以是一条数据，也可以是很多条数据，因为我们在mysql的配置文件中配置的格式是row！！
             Message message = canalConnector.get(100);
 
-            // 在抓取的时候可能没有数据，Entries就相当于是一个sql单元
+            // 在抓取的时候可能没有数据，entry就相当于是一个sql单元
             if (message.getEntries().size() == 0) {
                 System.out.println("没有数据，休息5秒");
                 try {
@@ -44,7 +44,7 @@ public class CanalApp {
                         // getStoreValue(): 需要的核心业务数据
                         // getStoreValue()方法返回的结果是ByteString，这个是一个序列化以后的结果，没法直接用，
                         ByteString storeValue = entry.getStoreValue();
-                        // 需要使用它自带的一个工具 Canal.RowChange进行反序列化
+                        // 需要使用它自带的一个工具 CanalEntry.RowChange进行反序列化
                         CanalEntry.RowChange rowChange = null;
                         try {
                             // 需要使用它自带的一个工具 Canal.RowChange进行反序列化

@@ -8,7 +8,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import com.alibaba.fastjson.JSON
 import com.atguigu.gmall0513.realtime.bean.OrderInfo
 import org.apache.spark.streaming.dstream.DStream
-import org.apache.phoenix.spark._
+
 
 object OrderApp {
     def main(args: Array[String]): Unit = {
@@ -39,6 +39,7 @@ object OrderApp {
         orderDstream.foreachRDD{rdd =>
             // 这里是需要建表的，用来接收数据！
             import org.apache.hadoop.conf.Configuration
+            import org.apache.phoenix.spark._
             rdd.saveToPhoenix("gmall0513_order_info",
                 Seq("ID","PROVINCE_ID", "CONSIGNEE", "ORDER_COMMENT", "CONSIGNEE_TEL", "ORDER_STATUS", "PAYMENT_WAY", "USER_ID","IMG_URL", "TOTAL_AMOUNT", "EXPIRE_TIME", "DELIVERY_ADDRESS", "CREATE_TIME","OPERATE_TIME","TRACKING_NO","PARENT_ORDER_ID","OUT_TRADE_NO", "TRADE_BODY", "CREATE_DATE", "CREATE_HOUR"),
                 new Configuration,

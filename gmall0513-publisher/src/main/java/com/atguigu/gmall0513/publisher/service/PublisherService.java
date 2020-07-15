@@ -16,4 +16,8 @@ public interface PublisherService {
 
     // 求分时的金额数据
     public Map<String,Double> getOrderAmountHour(String date);
+
+    // 灵活查询获取数据
+    public Map getSaleDetailMap(String date,String keyword,int pageStart,int pageSize);
+
 }

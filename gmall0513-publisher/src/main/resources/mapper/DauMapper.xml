@@ -38,6 +38,6 @@
 1. 使用mybatis定义了一个配置文件，还需要在入口处加上一个注解@MapperScan(basepackage = " ")。
 原因是： namespace="com.atguigu.gmall0513.publisher.mapper.DauMapper" 这个参数定义的路径 ， 必须在这个注解的扫描包的下面
     解析，在resource的mapper下面，一般情况下，查询几个表就需要几个xml文件。问题来了，这些xml都要去扫描哪些类呢？都扫描浪费资源
-    所以，为了缩小范围，需要在这个注解中传入一个路劲。 @MapperScan(basepackage = "路径")。  这个路径只要是父路径，那个路径问题都不大，但是一般情况下都会放在mapper这个包里面，所以直接写mapper的路径就行了
-2. 还需要在springboot的properties配置文件中配置具体的 服务器地址、用户名和密码之类的东西
+    所以，为了缩小范围，需要在这个注解中传入一个路径。 @MapperScan(basepackage = "路径")。  这个路径只要是父路径，那个路径问题都不大，但是一般情况下都会放在mapper这个包里面，所以直接写mapper的路径就行了
+2. 还需要在springboot的properties配置文件中配置具体的 服务器地址、用户名和密码之类的东西，并告诉spring这些xml文件都配置在那个包下面
 -->

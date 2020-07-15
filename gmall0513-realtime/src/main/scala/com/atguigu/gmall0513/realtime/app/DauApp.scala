@@ -94,7 +94,7 @@ object DauApp {
 
         // TODO 过滤的第二版代码
         // 在启动run以后会执行这段代码，但是之后不会执行了，之后循环不停执行的代码必须写在流里面
-        // 造成的结果就是今天只会取一个批次，让driver发送给executor！然后就再也不会发了
+        // 造成的结果就是今天只会取一个批次，让driver发送给executor！然后就再也不会发了，所以广播的代码需要写在流里面
         // 这个时候就想到使用流的另外一个算子： transform
         /*val jedis: Jedis = RedisUtil.getJedisClient     // driver
         val dateString: String = new SimpleDateFormat("yyyy-MM-dd").format(new Date())
@@ -103,9 +103,9 @@ object DauApp {
         // 定义广播变量：
         val dauMidBC: Broadcast[util.Set[String]] = ssc.sparkContext.broadcast(dauMidSet)
 
-        startUplogDstream.filter { startuplog => // executor
+        startUplogDstream.filter { startuplog =>                // executor 中执行
             val dauMidSet: util.Set[String] = dauMidBC.value
-            val flag: Boolean = dauMidSet.contains(startuplog.mid)
+            val flag: Boolean = dauMidSet.contains(startuplog.mid)      // 这个是用的contains方法，而第一版中这里直接连接redis，在redis中查询是否有这个id
             !flag
         }*/
 
@@ -114,7 +114,7 @@ object DauApp {
         // 思考： spark是一种微批次的数据流，我们自己设置了每5秒更新一次数据，也就是说5秒内数据是没有变化的
         //      既然5秒内数据是固定的，那可以先把数据从redis中查出来，每个executor中放一份，这样再查询的数据的时候不需要过网线，自己查询自己内存中的数据就行了
         //      可以使用广播变量！driver发送广播变量，driver把redis数据取出来，每5秒给executor发送一次，这样就不需要进行executor的数据与redis进行交互了
-        // 总结一下思路就是 spark拿到数据以后需要去重，去重是根据redis中的mid进行去重的，所以spark每拿到一次数据都需要和redis进行交互，判断，决定是否留下来，现在不需要了，使用广播变量即可
+        // 总结一下思路就是 spark拿到数据以后需要去重，去重是根据redis中的mid进行去重的，所以spark每拿到一次数据都需要和redis进行交互，判断，决定是否留下来，现在不需要了，使用广播变量即可（具体在第二版中实现）
         /*startUplogDstream.filter { startuplog =>
             import java.lang
             val jedis = RedisUtil.getJedisClient //driver
@@ -139,13 +139,13 @@ object DauApp {
 
 
         // 按理说，从思路上应该是第三步，先进行过滤在保存， 但是实际上一般都会先保存，打通流程并查看保存文件的格式
-        // TODO 4  把用户访问清单保存到redis中
+        // TODO 4  把用户访问清单保存到redis中： 最终版
         // 如何做到， 一次连接多次使用呢？？？？
         import com.atguigu.gmall0513.realtime.util.RedisUtil
         startupRealFilteredDstream.foreachRDD { rdd =>
                 // 这个foreachPartition 是每个分区执行一次， startupItr是一个迭代器，代表这个分区中所有的数据，能够迭代这个分区中的所有数据
             rdd.foreachPartition { startupItr =>
-                //executor 执行一次
+                //executor 执行一次，    jedis放在这里是每个分区链接一次，相比较上一版本，那是每条数据都重新连接一次
                 // val jedis: Jedis = new Jedis("hadoop102", 6379) 不用这个，继续优化，使用redis连接池，封装在redisUtil类中
                 val jedis = RedisUtil.getJedisClient //driver
                 for (startup <- startupItr) {
@@ -180,6 +180,7 @@ object DauApp {
 
 
 /*
+//  TODO 4  把用户访问清单保存到redis中  第一版
 // 注意： 下面这种方式虽然可以，但是可以优化，因为建立连接非常消耗性能！！我们这里建立连接是放在foreach中的，也就是说遍历一次都会新建立一个连接，用完了再关闭
 startupRealFilteredDstream.foreachRDD { rdd =>
     // 这一行是在driver中执行的，如果要把redis的连接提到这里会报错说没有序列化，这是因为如果程序在jvm就不需要序列化，但是只要数据从jvm中出去就一定要序列化

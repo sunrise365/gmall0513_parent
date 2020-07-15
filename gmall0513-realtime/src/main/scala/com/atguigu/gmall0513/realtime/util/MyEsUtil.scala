@@ -65,25 +65,27 @@ object MyEsUtil {
     // 批量操作
     // 注意，如果id不想自动生成，需要自己定义的话，可以在参数的时候传入id + 数据，这样传入的参数算是一个tuple
     def insertBulk(sourceList:List[(String,Any)],indexName:String,typeName:String): Unit = {
-        val jest: JestClient = getClient
-        // 把Bulk提出来做构造器
-        val bulkBuilder: Bulk.Builder = new Bulk.Builder()
-        // 应为是批次操作，所以把inde和type都提取出来，设置成默认的，不需要在循环中每次都做
-        bulkBuilder.defaultIndex(indexName).defaultType(typeName)
+        if (sourceList != null && sourceList.size != 0){
+            val jest: JestClient = getClient
+            // 把Bulk提出来做构造器
+            val bulkBuilder: Bulk.Builder = new Bulk.Builder()
+            // 应为是批次操作，所以把inde和type都提取出来，设置成默认的，不需要在循环中每次都做
+            bulkBuilder.defaultIndex(indexName).defaultType(typeName)
 
-        for ((id,source) <- sourceList) {
-            // 在循环中把index插入的动作全都放在bulk中，这样bulk中就有很多的动作，然后build以后放在execute中执行bulk，批量操作，减少连接
-            val index: Index = new Index.Builder(source).id(id).build()
-            bulkBuilder.addAction(index)
+            for ((id,source) <- sourceList) {
+                // 在循环中把index插入的动作全都放在bulk中，这样bulk中就有很多的动作，然后build以后放在execute中执行bulk，批量操作，减少连接
+                val index: Index = new Index.Builder(source).id(id).build()
+                bulkBuilder.addAction(index)
+            }
+
+            //val bulk: Bulk = new Bulk.Builder().build()
+
+            val bulk: Bulk = bulkBuilder.build()
+
+            // 执行插入的动作,  得到插入后的结果，并打印
+            val items: util.List[BulkResult#BulkResultItem] = jest.execute(bulk).getItems
+            println(s" 保存= ${items.size()} 条数据")
         }
-
-        //val bulk: Bulk = new Bulk.Builder().build()
-
-        val bulk: Bulk = bulkBuilder.build()
-
-        // 执行插入的动作,  得到插入后的结果，并打印
-        val items: util.List[BulkResult#BulkResultItem] = jest.execute(bulk).getItems
-        println(s" 保存= ${items.size()} 条数据")
     }
 
 
